@@ -39,12 +39,16 @@ namespace UnitBrains.Player
 
         public override Vector2Int GetNextStep()
         {
+            Vector2Int target = Vector2Int.zero;
             if (_listOfNonReachableTargets.Any())
-            {
-                var nextTarget = unit.Pos.CalcNextStepTowards(_listOfNonReachableTargets[_listOfNonReachableTargets.Count - 1]);
-                return nextTarget;
-            }
-            return base.GetNextStep();
+                target = _listOfNonReachableTargets[0];
+            else
+                target = unit.Pos;
+
+            if (IsTargetInRange(target))
+                return unit.Pos;
+            else
+                return unit.Pos.CalcNextStepTowards(target);
         }
 
         protected override List<Vector2Int> SelectTargets()
@@ -52,24 +56,21 @@ namespace UnitBrains.Player
             ///////////////////////////////////////
             // Homework 1.4 (1st block, 4rd module)
             ///////////////////////////////////////
-            Vector2Int nearestPositionOfEnemy = Vector2Int.zero;
             List<Vector2Int> resultList = new List<Vector2Int>();
-            List<Vector2Int> listOfReachableTargets = GetReachableTargets();
-            List<Vector2Int> listOfAllTargets = GetAllTargets().ToList();
+            Vector2Int target = GetNearesTarget(GetAllTargets().ToList());
+            _listOfNonReachableTargets.Clear();
 
-            if (listOfAllTargets.Any())
+            if (target.magnitude != 0)
             {
-                Vector2Int target = GetNearesTarget(listOfAllTargets);
-                if (listOfReachableTargets.Contains(target))
+                _listOfNonReachableTargets.Add(target);
+                if (IsTargetInRange(target))
                     resultList.Add(target);
-                else
-                    _listOfNonReachableTargets.Add(target);
             }
             else
             {
-                resultList.Add(runtimeModel.RoMap.Bases[RuntimeModel.BotPlayerId]);
+                resultList.Add(runtimeModel.RoMap.Bases[IsPlayerUnitBrain ? RuntimeModel.BotPlayerId : RuntimeModel.PlayerId]);
             }
-            return listOfAllTargets;
+            return resultList;
             ///////////////////////////////////////
         }
         private Vector2Int GetNearesTarget (List<Vector2Int> enemyUnits)
@@ -87,7 +88,10 @@ namespace UnitBrains.Player
                 }
             }
 
-            return nearestPositionOfEnemy;
+            if (minDistanceToEnemy < float.MaxValue)
+                return nearestPositionOfEnemy;
+            else
+                return Vector2Int.zero;
         }
 
         public override void Update(float deltaTime, float time)
